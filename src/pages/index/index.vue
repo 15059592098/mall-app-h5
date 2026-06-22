@@ -43,71 +43,9 @@
         <image src="/static/temp/c5.png"></image>
         <text>话题</text>
       </view>
-      <view class="cate-item" @click="handleNavToRecommendBrandPage">
-        <image src="/static/temp/c6.png"></image>
-        <text>优选</text>
-      </view>
       <view class="cate-item" @click="handleNavToHotProductListPage">
         <image src="/static/temp/c7.png"></image>
         <text>特惠</text>
-      </view>
-    </view>
-
-    <!-- 品牌制造商直供 -->
-    <view class="f-header m-t" @click="handleNavToRecommendBrandPage">
-      <image src="/static/icon_home_brand.png"></image>
-      <view class="tit-box">
-        <text class="tit">品牌制造商直供</text>
-        <text class="tit2">工厂直达消费者，剔除品牌溢价</text>
-      </view>
-      <text class="yticon icon-you"></text>
-    </view>
-    <view class="guess-section">
-      <view
-        v-for="(item, index) in brandList"
-        :key="index"
-        class="guess-item"
-        @click="handleNavToBrandDetailPage(item)"
-      >
-        <view class="image-wrapper-brand">
-          <image :src="item.logo" mode="aspectFit"></image>
-        </view>
-        <text class="title clamp">{{ item.name }}</text>
-        <text class="title2">商品数量：{{ item.productCount }}</text>
-      </view>
-    </view>
-
-    <!-- 秒杀专区 -->
-    <view class="f-header m-t" v-if="homeFlashPromotion">
-      <image src="/static/icon_flash_promotion.png"></image>
-      <view class="tit-box">
-        <text class="tit">秒杀专区</text>
-        <text class="tit2">下一场 {{ formatTime(homeFlashPromotion?.nextStartTime) }} 开始</text>
-      </view>
-      <view class="tit-box">
-        <text class="tit2" style="text-align: right">本场结束剩余：</text>
-        <view style="text-align: right">
-          <text class="hour timer">{{ cutDownTime.endHour }}</text>
-          <text>:</text>
-          <text class="minute timer">{{ cutDownTime.endMinute }}</text>
-          <text>:</text>
-          <text class="second timer">{{ cutDownTime.endSecond }}</text>
-        </view>
-      </view>
-    </view>
-    <view class="guess-section" v-if="homeFlashPromotion">
-      <view
-        v-for="(item, index) in homeFlashPromotion.productList"
-        :key="index"
-        class="guess-item"
-        @click="handleNavToDetailPage(item)"
-      >
-        <view class="image-wrapper">
-          <image :src="item.pic" mode="aspectFill"></image>
-        </view>
-        <text class="title clamp">{{ item.name }}</text>
-        <text class="title2 clamp">{{ item.subTitle }}</text>
-        <text class="price">￥{{ item.flashPromotionPrice || item.price }}</text>
       </view>
     </view>
 
@@ -158,11 +96,9 @@
         <view class="image-wrapper">
           <image :src="item.pic" mode="aspectFill"></image>
         </view>
-        <view class="txt">
-          <text class="title clamp">{{ item.name }}</text>
-          <text class="title2">{{ item.subTitle }}</text>
-          <text class="price">￥{{ item.price }}</text>
-        </view>
+        <text class="title clamp">{{ item.name }}</text>
+        <text class="title2 clamp">{{ item.subTitle }}</text>
+        <text class="price">￥{{ item.price }}</text>
       </view>
     </view>
 
@@ -196,9 +132,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import {
   onLoad,
+  onShow,
   onPullDownRefresh,
   onReachBottom,
   onPageScroll,
@@ -206,9 +143,8 @@ import {
   onNavigationBarSearchInputClicked,
 } from '@dcloudio/uni-app'
 import { getHomeContentAPI, getRecommendProductListAPI } from '@/apis/home'
-import type { SmsHomeAdvertise, HomeFlashPromotion } from '@/types/home'
+import type { SmsHomeAdvertise } from '@/types/home'
 import type { PmsProduct } from '@/types/product'
-import type { PmsBrand } from '@/types/brand'
 import type { PageParam } from '@/types/common'
 
 // ===== 页面数据 =====
@@ -227,10 +163,6 @@ const isScrolled = ref(false)
 
 // 轮播广告
 const advertiseList = ref<SmsHomeAdvertise[]>([])
-// 品牌制造商直供
-const brandList = ref<PmsBrand[]>([])
-// 秒杀专区
-const homeFlashPromotion = ref<HomeFlashPromotion | null>(null)
 // 新鲜好物
 const newProductList = ref<PmsProduct[]>([])
 // 人气推荐
@@ -243,27 +175,6 @@ const recommendPageParam = ref<PageParam>({
   pageSize: 4,
 })
 
-// ===== 计算属性 =====
-// 秒杀倒计时计算
-const cutDownTime = computed(() => {
-  if (!homeFlashPromotion.value?.endTime) {
-    return { endHour: '00', endMinute: '00', endSecond: '00' }
-  }
-  const endTime = new Date(homeFlashPromotion.value.endTime)
-  const now = new Date()
-  const endDateTime = new Date()
-  endDateTime.setHours(endTime.getHours())
-  endDateTime.setMinutes(endTime.getMinutes())
-  endDateTime.setSeconds(endTime.getSeconds())
-  const offsetTime = endDateTime.getTime() - now.getTime()
-  const endHour = String(Math.floor(offsetTime / (60 * 60 * 1000))).padStart(2, '0')
-  const offsetMinute = offsetTime % (60 * 60 * 1000)
-  const endMinute = String(Math.floor(offsetMinute / (60 * 1000))).padStart(2, '0')
-  const offsetSecond = offsetTime % (60 * 1000)
-  const endSecond = String(Math.floor(offsetSecond / 1000)).padStart(2, '0')
-  return { endHour, endMinute, endSecond }
-})
-
 // ===== 数据加载 =====
 // 加载首页数据
 const loadData = async () => {
@@ -271,8 +182,6 @@ const loadData = async () => {
     const res = await getHomeContentAPI()
     const data = res.data
     advertiseList.value = data?.advertiseList || []
-    brandList.value = data?.brandList || []
-    homeFlashPromotion.value = data?.homeFlashPromotion || null
     newProductList.value = data?.newProductList || []
     hotProductList.value = data?.hotProductList || []
     swiperLength.value = advertiseList.value.length
@@ -290,6 +199,11 @@ const loadData = async () => {
 // ===== 生命周期 =====
 // 页面加载时执行
 onLoad(() => {
+  loadData()
+})
+
+// 页面显示时执行（从其他页面返回时刷新）
+onShow(() => {
   loadData()
 })
 
@@ -375,20 +289,6 @@ const handleNavToAdvertisePage = (item: SmsHomeAdvertise) => {
   // TODO: 实现广告详情页跳转逻辑
 }
 
-// 跳转到品牌制造商直供页
-const handleNavToRecommendBrandPage = () => {
-  uni.navigateTo({
-    url: '/pages/brand/list',
-  })
-}
-
-// 跳转到品牌详情页
-const handleNavToBrandDetailPage = (item: PmsBrand) => {
-  uni.navigateTo({
-    url: `/pages/brand/brandDetail?id=${item.id}`,
-  })
-}
-
 // 跳转到新品列表页
 const handleNavToNewProductListPage = () => {
   uni.navigateTo({
@@ -438,18 +338,7 @@ onNavigationBarSearchInputClicked(() => {
   handleSearch()
 })
 
-// ===== 其他方法 =====
-// 时间格式化
-const formatTime = (time: string | undefined) => {
-  if (!time) return 'N/A'
-  const date = new Date(time)
-  const h = String(date.getHours()).padStart(2, '0')
-  const m = String(date.getMinutes()).padStart(2, '0')
-  const s = String(date.getSeconds()).padStart(2, '0')
-  return `${h}:${m}:${s}`
-}
-
-// 导航栏按钮点击事件
+// ===== 导航栏按钮点击事件 =====
 onNavigationBarButtonTap((e: { index: number }) => {
   const index = e.index
   if (index === 0) {
@@ -684,18 +573,6 @@ page {
   }
 }
 
-.ad-1 {
-  width: 100%;
-  height: 210rpx;
-  padding: 10rpx 0;
-  background: #fff;
-
-  image {
-    width: 100%;
-    height: 100%;
-  }
-}
-
 /* 秒杀专区 */
 .seckill-section {
   padding: 4rpx 30rpx 24rpx;
@@ -822,19 +699,6 @@ page {
     font-size: $font-lg + 2rpx;
     color: $font-color-light;
   }
-
-  .timer {
-    display: inline-block;
-    width: 40rpx;
-    height: 36rpx;
-    text-align: center;
-    line-height: 36rpx;
-    margin-right: 14rpx;
-    font-size: $font-sm + 2rpx;
-    color: #fff;
-    border-radius: 2px;
-    background: rgba(0, 0, 0, 0.8);
-  }
 }
 
 /* 猜你喜欢 */
@@ -858,19 +722,6 @@ page {
   .image-wrapper {
     width: 100%;
     height: 330rpx;
-    border-radius: 3px;
-    overflow: hidden;
-
-    image {
-      width: 100%;
-      height: 100%;
-      opacity: 1;
-    }
-  }
-
-  .image-wrapper-brand {
-    width: 100%;
-    height: 150rpx;
     border-radius: 3px;
     overflow: hidden;
 
@@ -914,14 +765,18 @@ page {
 
   .guess-item {
     display: flex;
-    flex-direction: row;
-    width: 100%;
+    flex-direction: column;
+    width: 48%;
     padding-bottom: 40rpx;
+
+    &:nth-child(2n + 1) {
+      margin-right: 4%;
+    }
   }
 
   .image-wrapper {
-    width: 30%;
-    height: 250rpx;
+    width: 100%;
+    height: 330rpx;
     border-radius: 3px;
     overflow: hidden;
 
@@ -935,14 +790,16 @@ page {
   .title {
     font-size: $font-lg;
     color: $font-color-dark;
-    line-height: 80uprpx;
+    line-height: 80rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .title2 {
     font-size: $font-sm;
     color: $font-color-light;
     line-height: 40rpx;
-    height: 80rpx;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;

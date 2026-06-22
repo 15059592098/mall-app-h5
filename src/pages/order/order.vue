@@ -342,6 +342,30 @@ page {
   height: 100%;
 }
 
+.header-bar {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 20rpx;
+  background: #fff;
+  position: relative;
+  z-index: 10;
+
+  .nav-back {
+    font-size: 36rpx;
+    color: #333;
+    transform: rotate(180deg);
+    padding: 10rpx;
+  }
+
+  .header-title {
+    font-size: 34rpx;
+    font-weight: bold;
+    color: #333;
+    margin-left: 10rpx;
+  }
+}
+
 .navbar {
   display: flex;
   height: 40px;

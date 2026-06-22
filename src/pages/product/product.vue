@@ -43,20 +43,6 @@
       </view>
     </view>
 
-    <!-- 分享 -->
-    <view class="share-section" @click="handleShare">
-      <view class="share-icon">
-        <text class="yticon icon-xingxing"></text>
-        返
-      </view>
-      <text class="tit">该商品分享可领49减10红包</text>
-      <text class="yticon icon-bangzhu1"></text>
-      <view class="share-btn">
-        立即分享
-        <text class="yticon icon-you"></text>
-      </view>
-    </view>
-
     <!-- 商品规格、参数、优惠券等 -->
     <view class="c-list">
       <view class="c-row b-b" @click="handleToggleSpec">
@@ -68,24 +54,7 @@
         </view>
         <text class="yticon icon-you"></text>
       </view>
-      <view class="c-row b-b" @click="handleToggleAttr">
-        <text class="tit">商品参数</text>
-        <view class="con">
-          <text class="con t-r">查看</text>
-        </view>
-        <text class="yticon icon-you"></text>
-      </view>
-      <view class="c-row b-b" @click="handleToggleCoupon('show')">
-        <text class="tit">优惠券</text>
-        <text class="con t-r red">领取优惠券</text>
-        <text class="yticon icon-you"></text>
-      </view>
-      <view class="c-row b-b">
-        <text class="tit">促销活动</text>
-        <view class="con-list">
-          <text v-for="item in promotionTipList" :key="item">{{ item }}</text>
-        </view>
-      </view>
+
       <view class="c-row b-b">
         <text class="tit">服务</text>
         <view class="bz-list con">
@@ -126,13 +95,13 @@
       <view class="d-header">
         <text>品牌信息</text>
       </view>
-      <view class="brand-box" @click="handleNavToBrandDetail">
+      <view class="brand-box" @click="handleNavToBrandDetail" v-if="brand">
         <view class="image-wrapper">
-          <image :src="brand.logo" class="loaded" mode="aspectFit"></image>
+          <image :src="brand?.logo" class="loaded" mode="aspectFit"></image>
         </view>
         <view class="title">
-          <text>{{ brand.name }}</text>
-          <text>品牌首字母：{{ brand.firstLetter }}</text>
+          <text>{{ brand?.name }}</text>
+          <text>品牌首字母：{{ brand?.firstLetter }}</text>
         </view>
       </view>
     </view>
@@ -170,6 +139,7 @@
       </view>
     </view>
 
+
     <!-- 规格-模态层弹窗 -->
     <view class="popup spec" :class="specClass" @touchmove.stop.prevent @click="handleToggleSpec">
       <view class="mask"></view>
@@ -206,50 +176,6 @@
       </view>
     </view>
 
-    <!-- 属性-模态层弹窗 -->
-    <view class="popup spec" :class="attrClass" @touchmove.stop.prevent @click="handleToggleAttr">
-      <view class="mask"></view>
-      <view class="layer attr-content no-padding" @click.stop>
-        <view class="c-list">
-          <view v-for="item in attrList" class="c-row b-b" :key="item.key">
-            <text class="tit">{{ item.key }}</text>
-            <view class="con">
-              <text class="con t-r">{{ item.value }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 优惠券面板 -->
-    <view
-      class="mask"
-      :class="couponState === 0 ? 'none' : couponState === 1 ? 'show' : ''"
-      @click="handleToggleCoupon"
-    >
-      <view class="mask-content" @click.stop.prevent>
-        <view
-          class="coupon-item"
-          v-for="(item, index) in couponList"
-          :key="index"
-          @click="handleAddCoupon(item)"
-        >
-          <view class="con">
-            <view class="left">
-              <text class="title">{{ item.name }}</text>
-              <text class="time">有效期至{{ formatDateTime(item.endTime) }}</text>
-            </view>
-            <view class="right">
-              <text class="price">{{ item.amount }}</text>
-              <text>满{{ item.minPoint }}可用</text>
-            </view>
-            <view class="circle l"></view>
-            <view class="circle r"></view>
-          </view>
-          <text class="tips">{{ formatCouponUseType(item.useType) }}</text>
-        </view>
-      </view>
-    </view>
   </view>
 </template>
 
@@ -258,7 +184,6 @@ import { ref, computed } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
 import { getProductDetailAPI } from '@/apis/product'
 import { addCartAPI } from '@/apis/cart'
-import { getProductCouponListAPI, addMemberCouponAPI } from '@/apis/coupon'
 import { createReadHistoryAPI } from '@/apis/memberReadHistory'
 import {
   createProductCollectionAPI,
@@ -269,17 +194,12 @@ import { useMemberStore } from '@/stores/member'
 import type {
   PmsProduct,
   PmsProductAttribute,
-  PmsProductAttributeValue,
   PmsSkuStock,
-  PmsProductFullReduction,
-  PmsProductLadder,
   SpecOption,
   ServiceItem,
   ShareItem,
 } from '@/types/product'
 import type { PmsBrand } from '@/types/brand'
-import type { SmsCoupon } from '@/types/coupon'
-import { formatDate } from '@/utils/date'
 
 // ===== 导航栏相关 =====
 const statusBarHeight = ref(0)
@@ -323,8 +243,6 @@ const defaultShareList: ShareItem[] = [
 
 // 弹窗状态
 const specClass = ref<'none' | 'show' | 'hide'>('none')
-const attrClass = ref<'none' | 'show' | 'hide'>('none')
-const couponState = ref(0)
 
 // 商品数据
 const product = ref<PmsProduct>({} as PmsProduct)
@@ -338,29 +256,8 @@ const specChildList = ref<SpecOption[]>([])
 const specSelected = ref<SpecOption[]>([])
 const skuStockList = ref<PmsSkuStock[]>([])
 
-// 属性、促销、服务
-const attrList = ref<{ key: string; value: string }[]>([])
-const promotionTipList = ref<string[]>([])
+// 服务
 const serviceList = ref<string[]>([])
-
-// 优惠券
-const couponList = ref<SmsCoupon[]>([])
-
-// 格式化时间（保留到秒）
-const formatDateTime = (time: string | null | undefined): string => {
-  if (!time) return 'N/A'
-  const date = new Date(time)
-  if (isNaN(date.getTime())) return 'N/A'
-  return formatDate(date, 'yyyy-MM-dd hh:mm:ss')
-}
-
-// 格式化优惠券使用类型
-const formatCouponUseType = (useType: number): string => {
-  if (useType === 0) return '全场通用'
-  if (useType === 1) return '指定分类商品可用'
-  if (useType === 2) return '指定商品可用'
-  return ''
-}
 
 // 收藏状态
 const favorite = ref(false)
@@ -393,8 +290,6 @@ const loadData = async (id: number) => {
       initImgList()
       initServiceList()
       initSpecList(data)
-      initAttrList(data)
-      initPromotionTipList(data)
       initProductDesc()
       saveReadHistory()
       initProductCollection()
@@ -448,41 +343,73 @@ const initServiceList = () => {
 // 初始化商品规格
 const initSpecList = (data: any) => {
   const { productAttributeList, productAttributeValueList } = data
+  let nextPid = 1
 
-  for (const item of productAttributeList) {
-    if (item.type === 0) {
-      // 规格属性
-      specList.value.push({
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        handAddStatus: item.handAddStatus,
-        inputList: item.inputList,
-        productAttributeCategoryId: item.productAttributeCategoryId,
-        searchType: item.searchType,
-        selectType: item.selectType,
-        relatedStatus: item.relatedStatus,
-        sort: item.sort,
-      })
+  if (productAttributeList) {
+    // 标准模式：从商品属性中读取规格
+    for (const item of productAttributeList) {
+      if (item.type === 0) {
+        // 规格属性
+        const pid = item.id || nextPid++
+        specList.value.push({
+          id: pid,
+          name: item.name,
+          type: item.type,
+          handAddStatus: item.handAddStatus,
+          inputList: item.inputList,
+          productAttributeCategoryId: item.productAttributeCategoryId,
+          searchType: item.searchType,
+          selectType: item.selectType,
+          relatedStatus: item.relatedStatus,
+          sort: item.sort,
+        })
 
-      if (item.handAddStatus === 1) {
-        // 支持手动新增
-        const filterValueList = productAttributeValueList.filter(
-          (v: PmsProductAttributeValue) => v.productAttributeId === item.id,
-        )
-        const inputList = filterValueList[0]?.value?.split(',') || []
-        for (const val of inputList) {
-          specChildList.value.push({ pid: item.id, pname: item.name, name: val })
-        }
-      } else if (item.handAddStatus === 0) {
-        // 不支持手动新增
-        const inputList = item.inputList?.split(',') || []
-        for (const val of inputList) {
-          specChildList.value.push({ pid: item.id, pname: item.name, name: val })
+        if (item.handAddStatus === 1) {
+          // 支持手动新增
+          const filterValueList = productAttributeValueList.filter(
+            (v: PmsProductAttributeValue) => v.productAttributeId === item.id,
+          )
+          const inputList = filterValueList[0]?.value?.split(',') || []
+          for (const val of inputList) {
+            specChildList.value.push({ pid, pname: item.name, name: val })
+          }
+        } else if (item.handAddStatus === 0) {
+          // 不支持手动新增
+          const inputList = item.inputList?.split(',') || []
+          for (const val of inputList) {
+            specChildList.value.push({ pid, pname: item.name, name: val })
+          }
         }
       }
     }
   }
+
+  // 如果标准模式没有获取到规格，从 SKU spData 中解析
+  if (specList.value.length === 0 && skuStockList.value.length > 0) {
+    const specMap = new Map<string, Set<string>>()
+    for (const sku of skuStockList.value) {
+      try {
+        const spDataArr = JSON.parse(sku.spData)
+        for (const sp of spDataArr) {
+          if (!specMap.has(sp.key)) {
+            specMap.set(sp.key, new Set())
+          }
+          specMap.get(sp.key)!.add(sp.value)
+        }
+      } catch (e) {
+        console.error('解析spData失败:', e, sku.spData)
+      }
+    }
+    for (const [key, values] of specMap.entries()) {
+      const pid = nextPid++
+      specList.value.push({ id: pid, name: key } as any)
+      for (const val of values) {
+        specChildList.value.push({ pid, pname: key, name: val })
+      }
+    }
+  }
+
+  if (specList.value.length === 0) return
 
   // 根据SKU筛选可用规格
   const availAbleSpecSet = new Set<string>()
@@ -510,47 +437,6 @@ const initSpecList = (data: any) => {
       }
     }
   })
-}
-
-// 初始化商品参数
-const initAttrList = (data: any) => {
-  const { productAttributeList, productAttributeValueList } = data
-
-  for (const item of productAttributeList) {
-    if (item.type === 1) {
-      // 参数属性
-      const filterValueList = productAttributeValueList.filter(
-        (v: PmsProductAttributeValue) => v.productAttributeId === item.id,
-      )
-      const value = filterValueList[0]?.value || ''
-      attrList.value.push({ key: item.name, value })
-    }
-  }
-}
-
-// 初始化促销活动信息
-const initPromotionTipList = (data: any) => {
-  const promotionType = product.value.promotionType
-
-  if (promotionType === 0) {
-    promotionTipList.value.push('暂无优惠')
-  } else if (promotionType === 1) {
-    promotionTipList.value.push('单品优惠')
-  } else if (promotionType === 2) {
-    promotionTipList.value.push('会员优惠')
-  } else if (promotionType === 3) {
-    promotionTipList.value.push('多买优惠')
-    for (const item of data.productLadderList || []) {
-      promotionTipList.value.push(`满${item.count}件打${item.discount * 10}折`)
-    }
-  } else if (promotionType === 4) {
-    promotionTipList.value.push('满减优惠')
-    for (const item of data.productFullReductionList || []) {
-      promotionTipList.value.push(`满${item.fullPrice}元减${item.reducePrice}元`)
-    }
-  } else if (promotionType === 5) {
-    promotionTipList.value.push('限时优惠')
-  }
 }
 
 // 初始化商品详情HTML
@@ -644,7 +530,7 @@ const getSkuStock = (): PmsSkuStock | null => {
 
 // 返回上一页
 const handleGoBack = () => {
-  uni.navigateBack({ delta: 1 })
+  uni.navigateBack({ delta: 1, fail: () => uni.switchTab({ url: '/pages/index/index' }) })
 }
 
 // 切换规格弹窗
@@ -656,43 +542,6 @@ const handleToggleSpec = () => {
     }, 250)
   } else if (specClass.value === 'none') {
     specClass.value = 'show'
-  }
-}
-
-// 切换属性弹窗
-const handleToggleAttr = () => {
-  if (attrClass.value === 'show') {
-    attrClass.value = 'hide'
-    setTimeout(() => {
-      attrClass.value = 'none'
-    }, 250)
-  } else if (attrClass.value === 'none') {
-    attrClass.value = 'show'
-  }
-}
-
-// 切换优惠券弹窗
-const handleToggleCoupon = async (type?: string) => {
-  try {
-    const res = await getProductCouponListAPI(String(product.value.id))
-    couponList.value = res.data || []
-
-    if (!couponList.value || couponList.value.length === 0) {
-      uni.showToast({
-        title: '暂无可领优惠券',
-        icon: 'none',
-      })
-      return
-    }
-
-    const timer = type === 'show' ? 10 : 300
-    const state = type === 'show' ? 1 : 0
-    couponState.value = 2
-    setTimeout(() => {
-      couponState.value = state
-    }, timer)
-  } catch (error) {
-    console.error('获取优惠券列表失败:', error)
   }
 }
 
@@ -716,20 +565,6 @@ const handleSelectSpec = (index: number, pid: number) => {
   })
 
   changeSpecInfo()
-}
-
-// 领取优惠券
-const handleAddCoupon = async (coupon: SmsCoupon) => {
-  handleToggleCoupon()
-  try {
-    await addMemberCouponAPI(String(coupon.id))
-    uni.showToast({
-      title: '领取优惠券成功！',
-      duration: 2000,
-    })
-  } catch (error) {
-    console.error('领取优惠券失败:', error)
-  }
 }
 
 // 分享
@@ -776,11 +611,40 @@ const handleToggleFavorite = async () => {
 }
 
 // 立即购买
-const handleBuy = () => {
-  uni.showToast({
-    title: '暂时只支持从购物车下单！',
-    icon: 'none',
-  })
+const handleBuy = async () => {
+  if (!memberStore.hasLogin) {
+    handleCheckLogin()
+    return
+  }
+
+  const skuStock = getSkuStock()
+  if (!skuStock) {
+    uni.showToast({
+      title: '请选择规格',
+      icon: 'none',
+    })
+    return
+  }
+
+  try {
+    await addCartAPI({
+      price: product.value.price,
+      productAttr: skuStock.spData,
+      productBrand: product.value.brandName,
+      productCategoryId: product.value.productCategoryId,
+      productId: product.value.id,
+      productName: product.value.name,
+      productPic: product.value.pic,
+      productSkuCode: skuStock.skuCode,
+      productSkuId: skuStock.id,
+      productSn: product.value.productSn,
+      productSubTitle: product.value.subTitle,
+      quantity: 1,
+    })
+    uni.switchTab({ url: '/pages/cart/cart' })
+  } catch (error) {
+    console.error('立即购买失败:', error)
+  }
 }
 
 // 加入购物车

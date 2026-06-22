@@ -267,6 +267,24 @@
           }
         }
       }
+    },
+    {
+      "path": "pages/productManage/productManage",
+      "style": {
+        "navigationBarTitleText": "商品管理"
+      }
+    },
+    {
+      "path": "pages/productManage/productForm",
+      "style": {
+        "navigationBarTitleText": "商品编辑"
+      }
+    },
+    {
+      "path": "pages/user/permissionManage",
+      "style": {
+        "navigationBarTitleText": "授权管理"
+      }
     }
   ],
   "globalStyle": {

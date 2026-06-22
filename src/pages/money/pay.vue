@@ -16,15 +16,6 @@
           <radio name="payType" value="" color="#fa436a" :checked="payType == 1" />
         </label>
       </view>
-      <view class="type-item b-b" @click="handleChangePayType(2)">
-        <text class="icon yticon icon-weixinzhifu"></text>
-        <view class="con">
-          <text class="tit">微信支付</text>
-        </view>
-        <label class="radio">
-          <radio name="payType" value="" color="#fa436a" :checked="payType == 2" />
-        </label>
-      </view>
     </view>
 
     <text class="mix-btn" @click="handleConfirmPay">确认支付</text>
@@ -76,15 +67,9 @@ const handleChangePayType = (type: number) => {
 const handleConfirmPay = async () => {
   // #ifdef H5
   if (USE_ALIPAY) {
-    if (payType.value != 1) {
-      uni.showToast({
-        title: '暂不支持微信支付！',
-        icon: 'none',
-      })
-      return
-    }
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
-    window.location.href =
+    const token = uni.getStorageSync('token')
+    const payUrl =
       apiBaseUrl +
       '/alipay/webPay?outTradeNo=' +
       orderInfo.value.orderSn +
@@ -93,6 +78,23 @@ const handleConfirmPay = async () => {
       '的商品订单' +
       '&totalAmount=' +
       orderInfo.value.totalAmount
+
+    // 用 fetch 带 token 获取支付表单
+    try {
+      const res = await fetch(payUrl, {
+        headers: { Authorization: token },
+      })
+      const formHtml = await res.text()
+      // 将返回的 HTML 表单插入页面并自动提交
+      const div = document.createElement('div')
+      div.innerHTML = formHtml
+      document.body.appendChild(div)
+      const form = div.querySelector('form')
+      if (form) form.submit()
+    } catch (e) {
+      console.error('支付请求失败', e)
+      uni.showToast({ title: '支付请求失败', icon: 'none' })
+    }
     return
   }
   // #endif

@@ -1,7 +1,7 @@
 import type { MemberInfo } from '@/types/member'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { loginAPI, getMemberInfoAPI } from '@/apis/member'
+import { loginAPI, getMemberInfoAPI, registerAPI } from '@/apis/member'
 
 // 定义会员Store
 export const useMemberStore = defineStore(
@@ -18,7 +18,7 @@ export const useMemberStore = defineStore(
       memberInfo.value = val
     }
 
-    // 会员登录（核心业务逻辑，不包含 UI 交互）
+    // 会员登录（用户名+密码）
     const memberLogin = async (username: string, password: string) => {
       // 1. 调用登录接口获取 token
       const loginRes = await loginAPI({ username, password })
@@ -27,14 +27,32 @@ export const useMemberStore = defineStore(
       const loginData = loginRes.data
       const token = `${loginData.tokenHead}${loginData.token}`
       uni.setStorageSync('token', token)
-      uni.setStorageSync('username', username)
-      uni.setStorageSync('password', password)
 
       // 3. 获取用户信息
       const memberRes = await getMemberInfoAPI()
 
       // 4. 保存用户信息到 Pinia
       setMemberInfo(memberRes.data)
+    }
+
+    // 手机号+验证码登录（自动注册）
+    const memberLoginByPhone = async (telephone: string, authCode: string) => {
+      const defaultPwd = 'mall888888'
+
+      try {
+        // 先尝试登录
+        await memberLogin(telephone, defaultPwd)
+      } catch {
+        // 登录失败则注册
+        await registerAPI({
+          username: telephone,
+          password: defaultPwd,
+          telephone,
+          authCode,
+        })
+        // 注册成功后再次登录
+        await memberLogin(telephone, defaultPwd)
+      }
     }
 
     // 会员退出登录
@@ -48,6 +66,7 @@ export const useMemberStore = defineStore(
       hasLogin,
       setMemberInfo,
       memberLogin,
+      memberLoginByPhone,
       memberLogout,
     }
   },

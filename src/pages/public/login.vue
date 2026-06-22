@@ -3,34 +3,42 @@
     <view class="left-bottom-sign"></view>
     <view class="back-btn yticon icon-zuojiantou-up" @click="navBack"></view>
     <view class="right-top-sign"></view>
-    <!-- 设置白色背景防止软键盘把下部绝对定位元素顶上来盖住输入框等 -->
     <view class="wrapper">
       <view class="left-top-sign">LOGIN</view>
-      <view class="welcome">欢迎回来！</view>
+      <view class="welcome">手机号登录</view>
       <view class="input-content">
         <view class="input-item">
-          <text class="tit">用户名</text>
-          <input type="text" v-model="username" placeholder="请输入用户名" :maxlength="11" />
-        </view>
-        <view class="input-item">
-          <text class="tit">密码</text>
+          <text class="tit">手机号</text>
           <input
-            v-model="password"
-            placeholder="8-18位不含特殊字符的数字、字母组合"
-            placeholder-class="input-empty"
-            :maxlength="20"
-            password
-            @confirm="toLogin"
+            type="number"
+            v-model="telephone"
+            placeholder="请输入手机号"
+            :maxlength="11"
           />
         </view>
+        <view class="input-item">
+          <text class="tit">验证码</text>
+          <view class="auth-code-row">
+            <input
+              type="text"
+              v-model="authCode"
+              placeholder="请输入验证码"
+              :maxlength="6"
+            />
+            <button
+              class="get-code-btn"
+              :class="{ disabled: countdown > 0 }"
+              :disabled="countdown > 0"
+              @click="handleGetAuthCode"
+            >
+              {{ countdown > 0 ? `${countdown}s后重试` : '获取验证码' }}
+            </button>
+          </view>
+        </view>
       </view>
-      <button class="confirm-btn" @click="toLogin" :disabled="logining"> 登录 </button>
-      <button class="confirm-btn2" @click="toRegist('qrcode')">获取体验账号</button>
-      <view class="forget-section" @click="toRegist('qrcode')">忘记密码?</view>
-    </view>
-    <view class="register-section">
-      还没有账号?
-      <text @click="toRegist('register')">马上注册</text>
+      <button class="confirm-btn" @click="toLogin" :disabled="logining">
+        {{ logining ? '登录中...' : '登录 / 注册' }}
+      </button>
     </view>
   </view>
 </template>
@@ -38,37 +46,52 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useMemberStore } from '@/stores/member'
+import { getAuthCodeAPI } from '@/apis/member'
 
-// 获取会员store
 const memberStore = useMemberStore()
 
-// 登录用户名
-const username = ref(uni.getStorageSync('username') || '')
-// 登录密码
-const password = ref(uni.getStorageSync('password') || '')
-// 登录加载状态
+const telephone = ref('')
+const authCode = ref('')
 const logining = ref(false)
+const countdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-// 登录处理
+// 获取验证码
+const handleGetAuthCode = async () => {
+  if (!telephone.value) {
+    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(telephone.value)) {
+    uni.showToast({ title: '手机号格式不正确', icon: 'none' })
+    return
+  }
+
+  try {
+    const res = await getAuthCodeAPI(telephone.value)
+    const code = res.data || '验证码已发送'
+    uni.showToast({ title: `验证码：${code}`, icon: 'none', duration: 5000 })
+    startCountdown()
+  } catch {
+    uni.showToast({ title: '获取验证码失败', icon: 'none' })
+  }
+}
+
+// 登录/注册
 const toLogin = async () => {
-  if (!username.value || !password.value) {
-    uni.showToast({
-      title: '请输入用户名和密码',
-      icon: 'none',
-    })
+  if (!telephone.value) {
+    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    return
+  }
+  if (!authCode.value) {
+    uni.showToast({ title: '请输入验证码', icon: 'none' })
     return
   }
 
   logining.value = true
-
   try {
-    await memberStore.memberLogin(username.value, password.value)
-
-    uni.showToast({
-      title: '登录成功',
-      icon: 'success',
-    })
-
+    await memberStore.memberLoginByPhone(telephone.value, authCode.value)
+    uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(() => {
       const pages = getCurrentPages()
       if (pages.length > 1) {
@@ -77,24 +100,30 @@ const toLogin = async () => {
         uni.switchTab({ url: '/pages/index/index' })
       }
     }, 1000)
-  } catch (error) {
-    uni.showToast({
-      title: '登录失败，请检查账号密码',
-      icon: 'none',
-    })
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '登录失败', icon: 'none' })
   } finally {
     logining.value = false
   }
 }
 
-// 返回上一页
-const navBack = () => {
-  uni.navigateBack()
+const startCountdown = () => {
+  countdown.value = 60
+  if (countdownTimer) clearInterval(countdownTimer)
+  countdownTimer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      countdown.value = 0
+      if (countdownTimer) {
+        clearInterval(countdownTimer)
+        countdownTimer = null
+      }
+    }
+  }, 1000)
 }
 
-// 跳转到注册页
-const toRegist = (mode: 'register' | 'qrcode') => {
-  uni.navigateTo({ url: `/pages/public/register?mode=${mode}` })
+const navBack = () => {
+  uni.navigateBack()
 }
 </script>
 
@@ -102,7 +131,9 @@ const toRegist = (mode: 'register' | 'qrcode') => {
 page {
   background: #fff;
 }
+</style>
 
+<style lang="scss" scoped>
 .container {
   padding-top: 115px;
   position: relative;
@@ -161,7 +192,6 @@ page {
     top: 0;
     transform: rotate(-50deg);
     border-radius: 50px 0 0 0;
-    /* background: pink; */
   }
 }
 
@@ -217,6 +247,40 @@ page {
   }
 }
 
+.auth-code-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  input {
+    flex: 1;
+  }
+
+  .get-code-btn {
+    flex-shrink: 0;
+    width: 200rpx;
+    height: 60rpx;
+    line-height: 60rpx;
+    font-size: 24rpx;
+    color: $uni-color-primary;
+    background: #fff;
+    border: 1rpx solid $uni-color-primary;
+    border-radius: 8rpx;
+    padding: 0;
+    margin: 0;
+    margin-left: 20rpx;
+
+    &::after {
+      border: none;
+    }
+
+    &.disabled {
+      color: $font-color-disabled;
+      border-color: $font-color-disabled;
+    }
+  }
+}
+
 .confirm-btn {
   width: 630rpx;
   height: 76rpx;
@@ -229,43 +293,6 @@ page {
 
   &:after {
     border-radius: 100px;
-  }
-}
-
-.confirm-btn2 {
-  width: 630rpx;
-  height: 76rpx;
-  line-height: 76rpx;
-  border-radius: 50px;
-  margin-top: 40rpx;
-  background: $uni-color-primary;
-  color: #fff;
-  font-size: $font-lg;
-
-  &:after {
-    border-radius: 100px;
-  }
-}
-
-.forget-section {
-  font-size: $font-sm + 2rpx;
-  color: $font-color-spec;
-  text-align: center;
-  margin-top: 40rpx;
-}
-
-.register-section {
-  position: absolute;
-  left: 0;
-  bottom: 50rpx;
-  width: 100%;
-  font-size: $font-sm + 2rpx;
-  color: $font-color-base;
-  text-align: center;
-
-  text {
-    color: $font-color-spec;
-    margin-left: 10rpx;
   }
 }
 </style>

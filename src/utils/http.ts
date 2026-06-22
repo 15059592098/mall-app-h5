@@ -115,10 +115,18 @@ export const http = <T>(options: HttpRequestOptions): Promise<CommonResult<T>> =
             reject(res)
           }
         } else {
-          uni.showToast({
-            icon: 'none',
-            title: (res.data as CommonResult<T>).message || '请求错误',
-          })
+          // 非2xx状态码也检查 body 中的 code
+          const data = res.data as CommonResult<T>
+          if (data && data.code === 401) {
+            const memberStore = useMemberStore()
+            memberStore.memberLogout()
+            uni.navigateTo({ url: '/pages/public/login' })
+          } else {
+            uni.showToast({
+              icon: 'none',
+              title: data?.message || '请求错误',
+            })
+          }
           reject(res)
         }
       },

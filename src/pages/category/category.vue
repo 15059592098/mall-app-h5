@@ -19,13 +19,7 @@
           v-for="item in subCateList"
           :key="item.id"
         >
-          <image
-            :src="
-              item.icon ||
-              'http://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/images/20190519/default.png'
-            "
-          ></image>
-          <text>{{ item.name }}</text>
+          <text class="s-item-text">{{ item.name }}</text>
         </view>
       </view>
     </scroll-view>
@@ -167,15 +161,19 @@ page {
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-direction: column;
   width: 33%;
-  font-size: 26rpx;
-  color: #666;
-  padding-bottom: 20rpx;
+  padding: 16rpx 0;
+}
 
-  image {
-    width: 140rpx;
-    height: 140rpx;
-  }
+.s-item-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  height: 80rpx;
+  font-size: 28rpx;
+  color: #333;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
 }
 </style>
