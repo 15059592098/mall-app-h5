@@ -96,6 +96,12 @@
           @eventClick="handleNavTo('/pages/productManage/productManage')"
         ></mix-list-cell>
         <mix-list-cell
+          icon="icon-shezhi1"
+          iconColor="#e07472"
+          title="轮播图管理"
+          @eventClick="handleNavTo('/pages/banner/bannerManage')"
+        ></mix-list-cell>
+        <mix-list-cell
           v-if="memberInfo?.phone === '15059592098'"
           icon="icon-dizhi"
           iconColor="#e07472"
