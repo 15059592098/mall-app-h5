@@ -285,6 +285,18 @@
       "style": {
         "navigationBarTitleText": "授权管理"
       }
+    },
+    {
+      "path": "pages/banner/bannerManage",
+      "style": {
+        "navigationBarTitleText": "轮播图管理"
+      }
+    },
+    {
+      "path": "pages/banner/bannerForm",
+      "style": {
+        "navigationBarTitleText": "轮播图编辑"
+      }
     }
   ],
   "globalStyle": {

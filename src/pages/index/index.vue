@@ -33,22 +33,6 @@
       </view>
     </view>
 
-    <!-- 头部功能区 -->
-    <view class="cate-section">
-      <view class="cate-item" @click="handleNavToTopicPage">
-        <image src="/static/temp/c3.png"></image>
-        <text>专题</text>
-      </view>
-      <view class="cate-item" @click="handleNavToTopicPage">
-        <image src="/static/temp/c5.png"></image>
-        <text>话题</text>
-      </view>
-      <view class="cate-item" @click="handleNavToHotProductListPage">
-        <image src="/static/temp/c7.png"></image>
-        <text>特惠</text>
-      </view>
-    </view>
-
     <!-- 新鲜好物 -->
     <view class="f-header m-t" @click="handleNavToNewProductListPage">
       <image src="/static/icon_new_product.png"></image>

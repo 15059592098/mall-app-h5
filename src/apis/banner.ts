@@ -1,4 +1,4 @@
-import http from '@/utils/http'
+import { http } from '@/utils/http'
 import type { SmsHomeAdvertise } from '@/types/home'
 
 export const getAdvertiseListAPI = () => {
@@ -27,15 +27,13 @@ export const updateAdvertiseAPI = (id: number, data: Partial<SmsHomeAdvertise>) 
 export const deleteAdvertiseAPI = (id: number) => {
   return http({
     method: 'POST',
-    url: '/home/advertise/delete',
-    data: { id },
+    url: `/home/advertise/delete?id=${id}`,
   })
 }
 
 export const toggleAdvertiseStatusAPI = (id: number, status: number) => {
   return http({
     method: 'POST',
-    url: '/home/advertise/toggleStatus',
-    data: { id, status },
+    url: `/home/advertise/toggleStatus?id=${id}&status=${status}`,
   })
 }
