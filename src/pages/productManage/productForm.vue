@@ -17,12 +17,34 @@
       </view>
 
       <view class="form-item">
-        <text class="label required">商品图片</text>
+        <text class="label required">商品图片（主图）</text>
         <view class="upload-box" @click="handleChooseImage">
           <image v-if="form.pic" :src="form.pic" class="preview-img" mode="aspectFill"></image>
           <view v-else class="upload-placeholder">
             <text class="yticon icon--add"></text>
             <text>点击上传</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <text class="label">商品相册（可选，最多5张）</text>
+        <view class="album-wrap">
+          <view
+            v-for="(img, i) in form.albumPics"
+            :key="i"
+            class="album-item"
+          >
+            <image :src="img" class="album-img" mode="aspectFill"></image>
+            <text class="album-del" @click="form.albumPics.splice(i, 1)">×</text>
+          </view>
+          <view
+            v-if="form.albumPics.length < 5"
+            class="album-add"
+            @click="handleChooseAlbumImages"
+          >
+            <text class="yticon icon--add"></text>
+            <text>添加图片</text>
           </view>
         </view>
       </view>
@@ -83,6 +105,7 @@ const form = ref({
   price: '' as any,
   note: '',
   pic: '',
+  albumPics: [] as string[],
   sizes: [] as string[],
   colors: [] as string[],
   productCategoryId: undefined as number | undefined,
@@ -140,6 +163,10 @@ onLoad(async (options: any) => {
       form.value.price = data.product.price || ''
       form.value.note = data.product.note || ''
       form.value.pic = data.product.pic || ''
+      form.value.albumPics =
+        data.product.albumPics
+          ? data.product.albumPics.split(',').filter((s: string) => s.trim())
+          : []
       form.value.sizes = data.sizes || []
       form.value.colors = data.colors || []
       form.value.productCategoryId = data.product.productCategoryId || undefined
@@ -176,6 +203,33 @@ const handleChooseImage = () => {
   })
 }
 
+const handleChooseAlbumImages = () => {
+  const remain = 5 - form.value.albumPics.length
+  if (remain <= 0) return
+  uni.chooseImage({
+    count: remain,
+    success: async (res) => {
+      uni.showLoading({ title: '上传中...' })
+      for (const tempFile of res.tempFilePaths) {
+        try {
+          const uploadRes = await uni.uploadFile({
+            url: '/file/upload',
+            filePath: tempFile,
+            name: 'file',
+          })
+          const data = JSON.parse(uploadRes.data as string)
+          if (data.code === 200) {
+            form.value.albumPics.push(data.data)
+          }
+        } catch (e) {
+          console.error('上传图片失败', e)
+        }
+      }
+      uni.hideLoading()
+    },
+  })
+}
+
 const handleSubmit = async () => {
   if (!form.value.name) {
     uni.showToast({ title: '请输入商品名称', icon: 'none' })
@@ -205,6 +259,7 @@ const handleSubmit = async () => {
       price: Number(form.value.price),
       note: form.value.note,
       pic: form.value.pic,
+      albumPics: form.value.albumPics,
       sizes: form.value.sizes,
       colors: form.value.colors,
       productCategoryId: form.value.productCategoryId,
@@ -303,6 +358,57 @@ const handleSubmit = async () => {
       .yticon {
         font-size: 48rpx;
         margin-bottom: 8rpx;
+      }
+    }
+  }
+
+  .album-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+
+    .album-item {
+      width: 160rpx;
+      height: 160rpx;
+      border-radius: 8rpx;
+      overflow: hidden;
+      position: relative;
+
+      .album-img {
+        width: 100%;
+        height: 100%;
+      }
+
+      .album-del {
+        position: absolute;
+        top: 4rpx;
+        right: 4rpx;
+        width: 32rpx;
+        height: 32rpx;
+        line-height: 32rpx;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        border-radius: 50%;
+        font-size: 24rpx;
+      }
+    }
+
+    .album-add {
+      width: 160rpx;
+      height: 160rpx;
+      background: #f5f5f5;
+      border-radius: 8rpx;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 22rpx;
+
+      .yticon {
+        font-size: 40rpx;
+        margin-bottom: 4rpx;
       }
     }
   }
