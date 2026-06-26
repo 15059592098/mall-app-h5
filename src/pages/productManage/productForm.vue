@@ -206,28 +206,40 @@ const handleChooseImage = () => {
 const handleChooseAlbumImages = () => {
   const remain = 5 - form.value.albumPics.length
   if (remain <= 0) return
-  uni.chooseImage({
-    count: remain,
-    success: async (res) => {
-      uni.showLoading({ title: '上传中...' })
-      for (const tempFile of res.tempFilePaths) {
-        try {
-          const uploadRes = await uni.uploadFile({
-            url: '/file/upload',
-            filePath: tempFile,
-            name: 'file',
-          })
-          const data = JSON.parse(uploadRes.data as string)
-          if (data.code === 200) {
-            form.value.albumPics.push(data.data)
-          }
-        } catch (e) {
-          console.error('上传图片失败', e)
+
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.multiple = true
+  input.onchange = async () => {
+    const files = Array.from(input.files || []).slice(0, remain)
+    if (files.length === 0) return
+    uni.showLoading({ title: '上传中...' })
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    const token = uni.getStorageSync('token') || ''
+    for (const file of files) {
+      try {
+        const uploadRes: any = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhr.open('POST', apiBase + '/file/upload')
+          if (token) xhr.setRequestHeader('Authorization', token)
+          const fd = new FormData()
+          fd.append('file', file)
+          xhr.onload = () => resolve({ data: xhr.responseText })
+          xhr.onerror = reject
+          xhr.send(fd)
+        })
+        const data = JSON.parse(uploadRes.data)
+        if (data.code === 200) {
+          form.value.albumPics.push(data.data)
         }
+      } catch (e) {
+        console.error('上传图片失败', e)
       }
-      uni.hideLoading()
-    },
-  })
+    }
+    uni.hideLoading()
+  }
+  input.click()
 }
 
 const handleSubmit = async () => {
