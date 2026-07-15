@@ -6,49 +6,43 @@
     <view class="wrapper">
       <view class="left-top-sign">LOGIN</view>
       <view class="welcome">手机号登录</view>
-
-      <!-- 步骤1：输入手机号 -->
-      <view v-if="step === 1" class="input-content">
+      <view class="input-content">
         <view class="input-item">
           <text class="tit">手机号</text>
           <input type="number" v-model="telephone" placeholder="请输入手机号" :maxlength="11" />
         </view>
-        <button class="confirm-btn" @click="goStep2">下一步</button>
-      </view>
-
-      <!-- 步骤2：已有账号 → 直接登录 -->
-      <view v-if="step === 2" class="input-content">
         <view class="input-item">
           <text class="tit">密码</text>
           <input type="text" v-model="password" :password="!showPwd" placeholder="请输入密码" :maxlength="20" />
         </view>
-        <button class="confirm-btn" @click="toLogin" :disabled="logining">
-          {{ logining ? '登录中...' : '登录' }}
-        </button>
-        <view class="forgot-pwd" @click="goForgotPwd">忘记密码？</view>
-        <view class="toggle-link" @click="step = 3">还没有账号？注册新账号</view>
+
+        <!-- 注册模式才显示的密保字段 -->
+        <template v-if="isRegister">
+          <view class="input-item">
+            <text class="tit">密保问题</text>
+            <picker @change="onQuestionChange" :range="questionOptions" range-key="label">
+              <view class="picker-input">{{ questionLabel }}</view>
+            </picker>
+          </view>
+          <view class="input-item">
+            <text class="tit">密保答案</text>
+            <input type="text" v-model="answer" placeholder="用于找回密码" :maxlength="30" />
+          </view>
+        </template>
       </view>
 
-      <!-- 步骤3：新用户 → 注册 -->
-      <view v-if="step === 3" class="input-content">
-        <view class="input-item">
-          <text class="tit">设置密码</text>
-          <input type="text" v-model="password" :password="!showPwd" placeholder="请设置6位以上密码" :maxlength="20" />
+      <button v-if="!isRegister" class="confirm-btn" @click="toLogin" :disabled="logining">
+        {{ logining ? '登录中...' : '登录' }}
+      </button>
+      <button v-else class="confirm-btn" @click="toRegister" :disabled="logining">
+        {{ logining ? '注册中...' : '注册' }}
+      </button>
+
+      <view class="bottom-links">
+        <view class="forgot-pwd" @click="goForgotPwd">忘记密码</view>
+        <view class="register-link" @click="toggleRegister">
+          {{ isRegister ? '已有账号？去登录' : '还没有账号？去注册' }}
         </view>
-        <view class="input-item">
-          <text class="tit">密保问题</text>
-          <picker @change="onQuestionChange" :range="questionOptions" range-key="label">
-            <view class="picker-input">{{ questionLabel }}</view>
-          </picker>
-        </view>
-        <view class="input-item">
-          <text class="tit">密保答案</text>
-          <input type="text" v-model="answer" placeholder="用于找回密码，请牢记" :maxlength="30" />
-        </view>
-        <button class="confirm-btn" @click="toRegister" :disabled="logining">
-          {{ logining ? '注册中...' : '注册' }}
-        </button>
-        <view class="toggle-link" @click="step = 2">已有账号？去登录</view>
       </view>
     </view>
   </view>
@@ -57,11 +51,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useMemberStore } from '@/stores/member'
-import { loginAPI, registerWithQuestionAPI } from '@/apis/member'
+import { registerWithQuestionAPI } from '@/apis/member'
 
 const memberStore = useMemberStore()
 
-const step = ref(1)
+const isRegister = ref(false)
 const telephone = ref('')
 const password = ref('')
 const answer = ref('')
@@ -85,15 +79,17 @@ const onQuestionChange = (e: any) => {
   questionLabel.value = questionOptions[idx]?.label || '请选择密保问题'
 }
 
-const goStep2 = () => {
+const toggleRegister = () => {
+  isRegister.value = !isRegister.value
+  password.value = ''
+  answer.value = ''
+}
+
+const toLogin = async () => {
   if (!telephone.value || !/^1[3-9]\d{9}$/.test(telephone.value)) {
     uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
     return
   }
-  step.value = 2
-}
-
-const toLogin = async () => {
   if (!password.value) {
     uni.showToast({ title: '请输入密码', icon: 'none' })
     return
@@ -115,6 +111,10 @@ const toLogin = async () => {
 }
 
 const toRegister = async () => {
+  if (!telephone.value || !/^1[3-9]\d{9}$/.test(telephone.value)) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return
+  }
   if (!password.value || password.value.length < 6) {
     uni.showToast({ title: '密码至少6位', icon: 'none' })
     return
@@ -136,7 +136,6 @@ const toRegister = async () => {
       question: selectedQuestion.value,
       answer: answer.value,
     })
-    // 注册后自动登录
     await memberStore.memberLogin(telephone.value, password.value)
     uni.showToast({ title: '注册成功', icon: 'success' })
     setTimeout(() => {
@@ -151,11 +150,8 @@ const toRegister = async () => {
   }
 }
 
-const goForgotPwd = () => {
-  uni.navigateTo({ url: '/pages/public/forgotPwd' })
-}
-
-const navBack = () => { uni.navigateBack() }
+const goForgotPwd = () => uni.navigateTo({ url: '/pages/public/forgotPwd' })
+const navBack = () => uni.navigateBack()
 </script>
 
 <style lang="scss">
@@ -198,6 +194,8 @@ page { background: #fff; }
   margin-top: 50rpx; background: $uni-color-primary; color: #fff; font-size: $font-lg;
   &:after { border-radius: 100px; }
 }
-.forgot-pwd { text-align: center; margin-top: 30rpx; font-size: 28rpx; color: $uni-color-primary; text-decoration: underline; }
-.toggle-link { text-align: center; margin-top: 20rpx; font-size: 26rpx; color: #999; text-decoration: underline; }
+.bottom-links {
+  display: flex; justify-content: center; gap: 60rpx; margin-top: 30rpx;
+  .forgot-pwd, .register-link { font-size: 28rpx; color: $uni-color-primary; text-decoration: underline; }
+}
 </style>
