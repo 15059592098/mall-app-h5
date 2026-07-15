@@ -17,28 +17,35 @@
           />
         </view>
         <view class="input-item">
-          <text class="tit">验证码</text>
-          <view class="auth-code-row">
-            <input
-              type="text"
-              v-model="authCode"
-              placeholder="请输入验证码"
-              :maxlength="6"
-            />
-            <button
-              class="get-code-btn"
-              :class="{ disabled: countdown > 0 }"
-              :disabled="countdown > 0"
-              @click="handleGetAuthCode"
-            >
-              {{ countdown > 0 ? `${countdown}s后重试` : '获取验证码' }}
-            </button>
-          </view>
+          <text class="tit">密码</text>
+          <input
+            type="text"
+            v-model="password"
+            :password="!showPwd"
+            placeholder="请设置6位以上密码"
+            :maxlength="20"
+          />
+        </view>
+        <view class="input-item">
+          <text class="tit">{{ isNewUser ? '密保问题' : '密保问题' }}</text>
+          <picker @change="onQuestionChange" :range="questionOptions" range-key="label">
+            <view class="picker-input">{{ questionLabel }}</view>
+          </picker>
+        </view>
+        <view class="input-item">
+          <text class="tit">密保答案</text>
+          <input
+            type="text"
+            v-model="answer"
+            placeholder="请输入密保答案（用于找回密码）"
+            :maxlength="30"
+          />
         </view>
       </view>
       <button class="confirm-btn" @click="toLogin" :disabled="logining">
-        {{ logining ? '登录中...' : '登录 / 注册' }}
+        {{ logining ? '处理中...' : '登录 / 注册' }}
       </button>
+      <view class="forgot-pwd" @click="goForgotPwd">忘记密码？</view>
     </view>
   </view>
 </template>
@@ -46,51 +53,54 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useMemberStore } from '@/stores/member'
-import { getAuthCodeAPI } from '@/apis/member'
 
 const memberStore = useMemberStore()
 
 const telephone = ref('')
-const authCode = ref('')
+const password = ref('')
+const answer = ref('')
 const logining = ref(false)
-const countdown = ref(0)
-let countdownTimer: ReturnType<typeof setInterval> | null = null
+const showPwd = ref(false)
 
-// 获取验证码
-const handleGetAuthCode = async () => {
-  if (!telephone.value) {
-    uni.showToast({ title: '请输入手机号', icon: 'none' })
-    return
-  }
-  if (!/^1[3-9]\d{9}$/.test(telephone.value)) {
-    uni.showToast({ title: '手机号格式不正确', icon: 'none' })
-    return
-  }
+const questionOptions = [
+  { label: '请选择密保问题', value: '' },
+  { label: '你的生日是？', value: '你的生日是？' },
+  { label: '你最喜欢的歌曲？', value: '你最喜欢的歌曲？' },
+  { label: '你的宠物名字？', value: '你的宠物名字？' },
+  { label: '你的小学名称？', value: '你的小学名称？' },
+  { label: '你的家乡是？', value: '你的家乡是？' },
+]
+const selectedQuestion = ref('')
 
-  try {
-    const res = await getAuthCodeAPI(telephone.value)
-    const code = res.data || '验证码已发送'
-    uni.showToast({ title: `验证码：${code}`, icon: 'none', duration: 5000 })
-    startCountdown()
-  } catch {
-    uni.showToast({ title: '获取验证码失败', icon: 'none' })
-  }
+const questionLabel = ref('请选择密保问题')
+
+const onQuestionChange = (e: any) => {
+  const idx = e.detail.value
+  selectedQuestion.value = questionOptions[idx]?.value || ''
+  questionLabel.value = questionOptions[idx]?.label || '请选择密保问题'
 }
 
-// 登录/注册
 const toLogin = async () => {
-  if (!telephone.value) {
-    uni.showToast({ title: '请输入手机号', icon: 'none' })
+  if (!telephone.value || !/^1[3-9]\d{9}$/.test(telephone.value)) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
     return
   }
-  if (!authCode.value) {
-    uni.showToast({ title: '请输入验证码', icon: 'none' })
+  if (!password.value || password.value.length < 6) {
+    uni.showToast({ title: '密码至少6位', icon: 'none' })
+    return
+  }
+  if (!selectedQuestion.value) {
+    uni.showToast({ title: '请选择密保问题', icon: 'none' })
+    return
+  }
+  if (!answer.value) {
+    uni.showToast({ title: '请输入密保答案', icon: 'none' })
     return
   }
 
   logining.value = true
   try {
-    await memberStore.memberLoginByPhone(telephone.value, authCode.value)
+    await memberStore.memberLoginByPassword(telephone.value, password.value, selectedQuestion.value, answer.value)
     uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(() => {
       const pages = getCurrentPages()
@@ -101,25 +111,14 @@ const toLogin = async () => {
       }
     }, 1000)
   } catch (error: any) {
-    uni.showToast({ title: error?.message || '登录失败', icon: 'none' })
+    uni.showToast({ title: error?.message || '登录失败，请检查手机号和密码', icon: 'none' })
   } finally {
     logining.value = false
   }
 }
 
-const startCountdown = () => {
-  countdown.value = 60
-  if (countdownTimer) clearInterval(countdownTimer)
-  countdownTimer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      countdown.value = 0
-      if (countdownTimer) {
-        clearInterval(countdownTimer)
-        countdownTimer = null
-      }
-    }
-  }, 1000)
+const goForgotPwd = () => {
+  uni.navigateTo({ url: '/pages/public/forgotPwd' })
 }
 
 const navBack = () => {
@@ -171,21 +170,17 @@ page {
   top: calc(var(--status-bar-height) + 80rpx);
   right: -30rpx;
   z-index: 95;
-
-  &:before,
-  &:after {
+  &:before, &:after {
     display: block;
     content: '';
     width: 400rpx;
     height: 80rpx;
     background: #b4f3e2;
   }
-
   &:before {
     transform: rotate(50deg);
     border-radius: 0 50px 0 0;
   }
-
   &:after {
     position: absolute;
     right: -198rpx;
@@ -226,58 +221,26 @@ page {
   background: $page-color-light;
   height: 120rpx;
   border-radius: 4px;
-  margin-bottom: 50rpx;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
+  margin-bottom: 30rpx;
+  &:last-child { margin-bottom: 0; }
   .tit {
     height: 50rpx;
     line-height: 56rpx;
     font-size: $font-sm + 2rpx;
     color: $font-color-base;
   }
-
   input {
     height: 60rpx;
     font-size: $font-base + 2rpx;
     color: $font-color-dark;
     width: 100%;
   }
-}
-
-.auth-code-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-
-  input {
-    flex: 1;
-  }
-
-  .get-code-btn {
-    flex-shrink: 0;
-    width: 200rpx;
+  .picker-input {
     height: 60rpx;
     line-height: 60rpx;
-    font-size: 24rpx;
-    color: $uni-color-primary;
-    background: #fff;
-    border: 1rpx solid $uni-color-primary;
-    border-radius: 8rpx;
-    padding: 0;
-    margin: 0;
-    margin-left: 20rpx;
-
-    &::after {
-      border: none;
-    }
-
-    &.disabled {
-      color: $font-color-disabled;
-      border-color: $font-color-disabled;
-    }
+    font-size: $font-base + 2rpx;
+    color: $font-color-dark;
+    width: 100%;
   }
 }
 
@@ -286,13 +249,18 @@ page {
   height: 76rpx;
   line-height: 76rpx;
   border-radius: 50px;
-  margin-top: 70rpx;
+  margin-top: 50rpx;
   background: $uni-color-primary;
   color: #fff;
   font-size: $font-lg;
+  &:after { border-radius: 100px; }
+}
 
-  &:after {
-    border-radius: 100px;
-  }
+.forgot-pwd {
+  text-align: center;
+  margin-top: 30rpx;
+  font-size: 28rpx;
+  color: $uni-color-primary;
+  text-decoration: underline;
 }
 </style>

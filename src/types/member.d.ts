@@ -14,6 +14,8 @@ export type MemberInfo = {
   integration?: number
   /** 成长值 */
   growth?: number
+  /** 个性签名（存储密保信息） */
+  personalizedSignature?: string
 }
 
 /** 登录接口返回结果 */
@@ -32,14 +34,16 @@ export type LoginParam = {
   password: string
 }
 
-/** 注册请求参数 */
-export type RegisterParam = {
+/** 注册请求参数（密码+密保方式） */
+export type RegisterQuestionParam = {
   /** 账户名 */
   username: string
   /** 密码 */
   password: string
   /** 手机号 */
   telephone: string
-  /** 验证码 */
-  authCode: string
+  /** 密保问题 */
+  question: string
+  /** 密保答案 */
+  answer: string
 }

@@ -1,7 +1,7 @@
 import type { MemberInfo } from '@/types/member'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { loginAPI, getMemberInfoAPI, registerAPI } from '@/apis/member'
+import { loginAPI, getMemberInfoAPI, registerWithQuestionAPI } from '@/apis/member'
 
 // 定义会员Store
 export const useMemberStore = defineStore(
@@ -35,23 +35,22 @@ export const useMemberStore = defineStore(
       setMemberInfo(memberRes.data)
     }
 
-    // 手机号+验证码登录（自动注册）
-    const memberLoginByPhone = async (telephone: string, authCode: string) => {
-      const defaultPwd = 'mall888888'
-
+    // 手机号+密码登录（首次自动注册+设密保）
+    const memberLoginByPassword = async (telephone: string, password: string, question: string, answer: string) => {
       try {
         // 先尝试登录
-        await memberLogin(telephone, defaultPwd)
+        await memberLogin(telephone, password)
       } catch {
-        // 登录失败则注册
-        await registerAPI({
+        // 登录失败则注册（带密保）
+        await registerWithQuestionAPI({
           username: telephone,
-          password: defaultPwd,
+          password,
           telephone,
-          authCode,
+          question,
+          answer,
         })
         // 注册成功后再次登录
-        await memberLogin(telephone, defaultPwd)
+        await memberLogin(telephone, password)
       }
     }
 
@@ -66,7 +65,7 @@ export const useMemberStore = defineStore(
       hasLogin,
       setMemberInfo,
       memberLogin,
-      memberLoginByPhone,
+      memberLoginByPassword,
       memberLogout,
     }
   },

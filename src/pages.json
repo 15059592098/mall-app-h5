@@ -100,6 +100,13 @@
       }
     },
     {
+      "path": "pages/public/forgotPwd",
+      "style": {
+        "navigationBarTitleText": "找回密码",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/set/set",
       "style": {
         "navigationBarTitleText": "设置"
