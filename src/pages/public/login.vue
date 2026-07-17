@@ -144,7 +144,7 @@ const toRegister = async () => {
       else { uni.switchTab({ url: '/pages/index/index' }) }
     }, 1000)
   } catch (error: any) {
-    uni.showToast({ title: error?.message || '注册失败', icon: 'none' })
+    uni.showToast({ title: error?.data?.message || '注册失败', icon: 'none' })
   } finally {
     logining.value = false
   }
