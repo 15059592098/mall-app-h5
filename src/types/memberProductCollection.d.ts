@@ -5,7 +5,7 @@
 /** 会员商品收藏 - 对应后端 MemberProductCollection Schema */
 export type MemberProductCollection = {
   /** ID */
-  id?: string
+  id?: number
   /** 创建时间 */
   createTime?: string
   /** 会员头像 */

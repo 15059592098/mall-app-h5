@@ -12,7 +12,7 @@ export const createReadHistoryAPI = (data: MemberReadHistory) => {
 }
 
 /** 删除浏览记录 */
-export const deleteReadHistoryAPI = (params: { ids: string[] }) => {
+export const deleteReadHistoryAPI = (params: { ids: number[] }) => {
   return http({
     method: 'POST',
     url: '/member/readHistory/delete',

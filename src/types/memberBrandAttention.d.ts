@@ -5,7 +5,7 @@
 /** 会员品牌关注 - 对应后端 MemberBrandAttention Schema */
 export type MemberBrandAttention = {
   /** ID */
-  id?: string
+  id?: number
   /** 创建时间 */
   createTime?: string
   /** 会员头像 */

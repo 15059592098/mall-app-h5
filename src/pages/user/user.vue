@@ -90,12 +90,14 @@
           @eventClick="handleNavTo('/pages/user/productCollection')"
         ></mix-list-cell>
         <mix-list-cell
+          v-if="memberInfo?.phone === '15059592098'"
           icon="icon-dizhi"
           iconColor="#5fcda2"
           title="商品管理"
           @eventClick="handleNavTo('/pages/productManage/productManage')"
         ></mix-list-cell>
         <mix-list-cell
+          v-if="memberInfo?.phone === '15059592098'"
           icon="icon-shezhi1"
           iconColor="#e07472"
           title="轮播图管理"
@@ -108,7 +110,12 @@
           title="授权管理"
           @eventClick="handleNavTo('/pages/user/permissionManage')"
         ></mix-list-cell>
-        <mix-list-cell icon="icon-pingjia" iconColor="#ee883b" title="我的评价"></mix-list-cell>
+        <mix-list-cell
+          icon="icon-pingjia"
+          iconColor="#ee883b"
+          title="我的评价"
+          @eventClick="handleNavTo('/pages/user/evaluate')"
+        ></mix-list-cell>
         <mix-list-cell
           icon="icon-shezhi1"
           iconColor="#e07472"
