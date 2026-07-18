@@ -90,21 +90,21 @@
           @eventClick="handleNavTo('/pages/user/productCollection')"
         ></mix-list-cell>
         <mix-list-cell
-          v-if="memberInfo?.phone === '15059592098'"
+          v-if="isAdmin"
           icon="icon-dizhi"
           iconColor="#5fcda2"
           title="商品管理"
           @eventClick="handleNavTo('/pages/productManage/productManage')"
         ></mix-list-cell>
         <mix-list-cell
-          v-if="memberInfo?.phone === '15059592098'"
+          v-if="isAdmin"
           icon="icon-shezhi1"
           iconColor="#e07472"
           title="轮播图管理"
           @eventClick="handleNavTo('/pages/banner/bannerManage')"
         ></mix-list-cell>
         <mix-list-cell
-          v-if="memberInfo?.phone === '15059592098'"
+          v-if="isAdmin"
           icon="icon-dizhi"
           iconColor="#e07472"
           title="授权管理"
@@ -130,8 +130,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { onNavigationBarButtonTap } from '@dcloudio/uni-app'
+import { onShow, onNavigationBarButtonTap } from '@dcloudio/uni-app'
 import { useMemberStore } from '@/stores/member'
+import { http } from '@/utils/http'
 import mixListCell from '@/components/mix-list-cell.vue'
 
 // ===== Store 相关 =====
@@ -141,6 +142,19 @@ const memberStore = useMemberStore()
 const hasLogin = computed(() => !!memberStore.memberInfo)
 // 会员信息
 const memberInfo = computed(() => memberStore.memberInfo)
+// 是否有管理权限
+const isAdmin = ref(false)
+
+// 加载权限状态
+const loadPermission = async () => {
+  if (!hasLogin.value) { isAdmin.value = false; return }
+  try {
+    const res = await http<boolean>({ method: 'GET', url: '/managePermission/check' })
+    isAdmin.value = res.data === true
+  } catch { isAdmin.value = false }
+}
+
+onShow(() => loadPermission())
 
 // ===== 页面数据 =====
 // 遮罩层变换样式
